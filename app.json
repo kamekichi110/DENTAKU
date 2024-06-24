@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "ぱにこれ！ - Official APP",
+  "short_name": "ぱにこれ！",
+  "background_color": "#FFC6CF",
+  "theme_color": "#FFC6CF",
+  "description": "ぱにこれ公式Webアプリケーション「ぱにこれ！」です！",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "./",
+  "categories": ["entertainment", "utilities"],
+  "icons": []
+}
