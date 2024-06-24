@@ -1,26 +1,68 @@
-include $(DEVKITARM)/3ds_rules
+# DENTAKU Makefile
 
-TARGET := nandemo_ya
-BUILD := build
-SOURCE := src
-INCLUDE := include
-DATA := data
+TARGET := DENTAKU
+SOURCES := source/main.c source/calculator.c source/graph.c source/ui.c
+INCLUDES := -Isource
+LIBS := -lctru -lcitro3d
 
-CFILES := $(foreach dir,$(SOURCE),$(notdir $(wildcard $(dir)/*.c)))
-OFILES := $(patsubst %.c,%.o,$(CFILES))
+# Directories
+BUILD_DIR := build
+GRAPHICS_DIR := gfx
+ASSETS_DIR := assets
 
-INCLUDE := -I$(INCLUDE) -I$(DEVKITPRO)/libctru/include
+# Filenames
+ICON := $(GRAPHICS_DIR)/icon.png
+BANNER := $(GRAPHICS_DIR)/banner.png
+BACKGROUND := $(GRAPHICS_DIR)/background.bin
+TADA_WAV := $(ASSETS_DIR)/tada.wav
 
-CFLAGS := -g -Wall $(INCLUDE)
-LDFLAGS := -specs=3dsx.specs -g
+# Output files
+OUTPUT := $(TARGET).3dsx
+CIA_OUTPUT := $(TARGET).cia
 
-$(BUILD)/$(TARGET).3dsx: $(OFILES)
-	@echo linking ... $(TARGET).3dsx
-	@$(LD) $(LDFLAGS) -o $@ $(OFILES)
+# Tools (assuming they are in PATH, adjust if necessary)
+MAKEROM := makerom
+3DSX_TOOL := 3dsxtool
+SMDHTOOL := smdhtool
+WAV_TO_BCSTM := wavtobcstm
 
-%.o: %.c
-	@echo compiling ... $<
-	@$(CC) $(CFLAGS) -c $< -o $@
+# Flags
+CFLAGS := -Wall
+
+# Environment variables
+export DEVKITPRO := /opt/devkitpro
+export PATH := $(DEVKITPRO)/tools/bin:$(PATH)
+
+all: check_libs $(OUTPUT) $(CIA_OUTPUT)
+
+check_libs:
+	@echo "Checking if libraries are installed..."
+	@$(DEVKITPRO)/tools/bin/pkg-config --exists devkitARM ctrulib citro3d || \
+	    (echo "Required libraries are not installed, installing..."; \
+	    sudo $(DEVKITPRO)/update.sh && \
+	    sudo $(DEVKITPRO)/pacman -S --noconfirm devkitARM ctrulib citro3d)
+
+$(OUTPUT): $(TARGET).elf $(ICON) $(BACKGROUND)
+	@echo "Generating $@..."
+	@$(3DSX_TOOL) -s 0x2000000 -b "$(TARGET);$(TARGET);$(TARGET)" -i "$(ICON)" $< $@
+
+$(CIA_OUTPUT): $(OUTPUT) $(BANNER) $(TADA_WAV)
+	@echo "Generating $@..."
+	@$(MAKEROM) -f cia -o $@ -target t -elf $< -rsf $(TARGET).rsf -icon $(ICON) -banner $(BANNER)
+
+$(TARGET).elf: $(SOURCES)
+	@echo "Building $@..."
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CFLAGS) $(INCLUDES) -o $(BUILD_DIR)/$@ $^ $(LIBS)
+
+$(BANNER): $(BANNER).png
+	@cp $< $@
+
+$(ICON): $(ICON).png
+	@cp $< $@
 
 clean:
-	@rm -f $(BUILD)/*.o $(BUILD)/*.3dsx
+	@echo "Cleaning up..."
+	@rm -rf $(BUILD_DIR) $(OUTPUT) $(CIA_OUTPUT)
+
+.PHONY: all clean check_libs
