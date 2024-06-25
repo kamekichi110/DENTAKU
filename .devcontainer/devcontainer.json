@@ -1,0 +1,6 @@
+{
+  "name": "3DS Homebrew Development",
+    "image": "devkitpro/devkitpro-pacman:latest",
+    "runArgs": ["--privileged"],
+    "postCreateCommand": "sudo dkp-pacman -Sy --noconfirm devkitARM libctru 3ds-dev"
+}
